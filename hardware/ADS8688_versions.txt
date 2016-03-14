@@ -1,0 +1,12 @@
+ADS8688 version note
+
+v0 / pre-release ------------------------------------------------
+
+	KNOWN ISSUES
+	- AVDD and DVDD need to be separated
+	- AVDD pins are not connected to each other
+	- A6 an A7 GND are connected together
+
+v1 / first-release -----------------------------------------------
+
+	TO BE RELEASED
