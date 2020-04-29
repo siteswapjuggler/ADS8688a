@@ -141,7 +141,7 @@
         
 		private:
             float _vref;
-            uint8_t _cs, _mode, _feature;                 // chip select pin, current operation mode
+            uint8_t _cs, _ch, _mode, _feature;                 // chip select pin, current operation mode
             void writeRegister(uint8_t reg, uint8_t val); // write 8 bit data into a register
             uint8_t readRegister(uint8_t reg);            // read 8 bit data in a specific register
             uint16_t cmdRegister(uint8_t reg);            // send a command register and read

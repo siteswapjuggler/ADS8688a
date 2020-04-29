@@ -8,14 +8,14 @@
 ////////////////////////
 
 ADS8688::ADS8688() {
-    _cs = 10;                     // default chip select pin
+	_cs = 10;                     // default chip select pin
     _mode = MODE_IDLE;            // start in Idle mode
     _vref = 4.096;                // vref at 4.096
     _feature = 0;                 // start with no feature
     pinMode(_cs,OUTPUT);          // set the pin as output
     digitalWrite(_cs,HIGH);       // set the pin to default HIGH state
     SPI.begin();                  // initiate SPI
-    }
+}
 
 ADS8688::ADS8688(byte cs) {
 	_cs = cs;                     // choose the chip select pin
@@ -24,8 +24,12 @@ ADS8688::ADS8688(byte cs) {
     _feature = 0;                 // start with no feature
 	pinMode(_cs,OUTPUT);          // set the pin as output
     digitalWrite(_cs,HIGH);       // set the pin to default HIGH state
-    SPI.begin();                  // initiate SPI
-    }
+	#ifdef __TC27XX__
+		SPI.begin(_cs);           // initiate SPI
+	#else
+		SPI.begin();              // initiate SPI
+	#endif
+}
 
 /////////////////////////
 //  PUBLIC METHODS    //
@@ -33,23 +37,23 @@ ADS8688::ADS8688(byte cs) {
 
 uint16_t ADS8688::noOp() {
     return cmdRegister(NO_OP);
-    }
+}
 
 uint16_t ADS8688::standBy() {
     return cmdRegister(STDBY);
-    }
+}
 
 uint16_t ADS8688::powerDown() {
     return cmdRegister(PWR_DN);
-    }
+}
 
 uint16_t ADS8688::reset() {
     return cmdRegister(RST);
-    }
+}
 
 uint16_t ADS8688::autoRst() {
     return cmdRegister(AUTO_RST);
-    }
+}
 
 uint16_t ADS8688::manualChannel(uint8_t ch) {
     uint8_t reg;
@@ -66,30 +70,30 @@ uint16_t ADS8688::manualChannel(uint8_t ch) {
         default: reg = MAN_Ch_0;break;
     }
     return cmdRegister(reg);
-    }
+}
 
 //-----------------------------------------------------------------------------
 
 void ADS8688::setChannelSPD(uint8_t flag) {
     setChannelSequence(flag);
     setChannelPowerDown((uint8_t)~flag);
-    }
+}
 
 void ADS8688::setChannelSequence(uint8_t flag) {
     writeRegister(AUTO_SEQ_EN,flag);
-    }
+}
 
 void ADS8688::setChannelPowerDown(uint8_t flag) {
     writeRegister(CH_PWR_DN,flag);
-    }
+}
 
 uint8_t ADS8688::getChannelSequence() {
     return readRegister(AUTO_SEQ_EN);
-    }
+}
 
 uint8_t ADS8688::getChannelPowerDown() {
     return readRegister(CH_PWR_DN);
-    }
+}
 
 //-----------------------------------------------------------------------------
 
@@ -107,7 +111,7 @@ uint8_t ADS8688::getChannelRange(uint8_t ch) {
         default: reg = RG_Ch_0;break;
         }
     return readRegister(reg);
-    }
+}
 
 void ADS8688::setChannelRange(uint8_t ch, uint8_t range) {
     uint8_t reg;
@@ -123,133 +127,133 @@ void ADS8688::setChannelRange(uint8_t ch, uint8_t range) {
         default: reg = RG_Ch_0;break;
         }
     writeRegister(reg,range);
-    }
+}
 
 void ADS8688::setGlobalRange(uint8_t range) {
     for (uint8_t i=0;i<8;i++) setChannelRange(i,range);
-    }
+}
 
 //-----------------------------------------------------------------------------
 
 uint8_t ADS8688::getId() {
     return (getFeatureSelect() >> 6);
-    }
+}
 
 void ADS8688::setId(uint8_t id) {
     _feature = (_feature & 0b00010111) | ((id & 0b11)<<6);
     writeRegister(FT_SEL,_feature);
-    }
+}
 
 bool ADS8688::getAlarm() {
     return (getFeatureSelect() >> 4) & 1;
-    }
+}
 
 void ADS8688::setAlarm(bool alarm) {
     _feature = (_feature & 0b11000111) | ((alarm == true)<<4);
     writeRegister(FT_SEL,_feature);
-    }
+}
 
 uint8_t ADS8688::getSdo() {
     return (getFeatureSelect() & 0b111);
-    }
+}
 
 void ADS8688::setSdo(uint8_t sdo) {
     _feature = (_feature & 0b11010000) | (sdo & 0b111);
     writeRegister(FT_SEL,_feature);
-    }
+}
 
 uint8_t ADS8688::getFeatureSelect() {
     return readRegister(FT_SEL);
-    }
+}
 
 void ADS8688::setFeatureSelect(uint8_t id, bool alarm, uint8_t sdo) {
     _feature = ((id & 0b11)<<6) | ((alarm == true)<<4) | (sdo & 0b111);
     writeRegister(FT_SEL,_feature);
-    }
+}
 
 //-----------------------------------------------------------------------------
 
 uint8_t ADS8688::getAlarmOverview() {
     return readRegister(ALARM_OVERVIEW);
-    }
+}
 
 uint8_t ADS8688::getFirstTrippedFlag() {
     return readRegister(ALARM_CH0_TRIPPED_FLAG);
-    }
+}
 
 uint8_t ADS8688::getSecondTrippedFlag() {
     return readRegister(ALARM_CH4_TRIPPED_FLAG);
-    }
+}
 
 uint16_t ADS8688::getTrippedFlags() {
     uint8_t MSB = readRegister(ALARM_CH0_TRIPPED_FLAG);
     uint8_t LSB = readRegister(ALARM_CH4_TRIPPED_FLAG);
     return (MSB << 8) | LSB;
-    }
+}
 
 uint8_t ADS8688::getFirstActiveFlag() {
     return readRegister(ALARM_CH0_ACTIVE_FLAG);
-    }
+}
 
 uint8_t ADS8688::getSecondActiveFlag() {
     return readRegister(ALARM_CH4_ACTIVE_FLAG);
-    }
+}
 
 uint16_t ADS8688::getActiveFlags() {
     uint8_t MSB = readRegister(ALARM_CH0_ACTIVE_FLAG);
     uint8_t LSB = readRegister(ALARM_CH4_ACTIVE_FLAG);
     return (MSB << 8) | LSB;
-    }
+}
 
 //-----------------------------------------------------------------------------
 
 uint8_t ADS8688::getChannelHysteresis(uint8_t ch) {
     uint8_t reg = 5*(ch>7?7:ch) + CH0_HYST;
     return readRegister(reg);
-    }
+}
 
 uint16_t ADS8688::getChannelLowThreshold(uint8_t ch) {
     uint8_t reg = 5*(ch>7?7:ch) + CH0_LT_MSB;
     uint8_t MSB = readRegister(reg);
     uint8_t LSB = readRegister(reg+1);
     return (MSB << 8) | LSB;
-    }
+}
 
 uint16_t ADS8688::getChannelHighThreshold(uint8_t ch) {
     uint8_t reg = 5*(ch>7?7:ch) + CH0_HT_MSB;
     uint8_t MSB = readRegister(reg);
     uint8_t LSB = readRegister(reg+1);
     return (MSB << 8) | LSB;
-    }
+}
 
 void ADS8688::setChannelHysteresis(uint8_t ch, uint8_t val) {
     uint8_t reg = 5*(ch>7?7:ch) + CH0_HYST;
     writeRegister(reg,val);
-    }
+}
 
 void ADS8688::setChannelLowThreshold(uint8_t ch, uint16_t val) {
     uint8_t reg = 5*(ch>7?7:ch) + CH0_LT_MSB;
     writeRegister(reg,val>>8);
     writeRegister(reg+1,val&255);
-    }
+}
 
 void ADS8688::setChannelHighThreshold(uint8_t ch, uint16_t val)  {
     uint8_t reg = 5*(ch>7?7:ch) + CH0_HT_MSB;
     writeRegister(reg,val>>8);
     writeRegister(reg+1,val&255);
-    }
+}
 
 //-----------------------------------------------------------------------------
 
 uint8_t ADS8688::getCommandReadBack() {
     return readRegister(CMD_READBACK);
-    }
+}
 
 //-----------------------------------------------------------------------------
 
 void ADS8688::setVREF(float vref) {
     _vref = vref;
-    }
+}
 
 float ADS8688::I2V(uint16_t x, uint8_t range) {
     float out_min, out_max;
@@ -293,7 +297,7 @@ float ADS8688::I2V(uint16_t x, uint8_t range) {
             
     }
     return (float)x * (out_max - out_min) / 65535. + out_min;
-    }
+}
 
 uint16_t ADS8688::V2I(float x, uint8_t range) {
     float in_min, in_max;
@@ -346,38 +350,68 @@ uint16_t ADS8688::V2I(float x, uint8_t range) {
 void ADS8688::writeRegister(uint8_t reg, uint8_t val) {
     SPI.beginTransaction(SPISettings(17000000, MSBFIRST, SPI_MODE1));
     digitalWrite(_cs, LOW);
-    SPI.transfer((reg << 1) | 0x01);
-    SPI.transfer(val);;
-    SPI.transfer(0x00);
+	#ifdef __TC27XX__
+	SPI.transfer(_ch,(reg << 1) | 0x01,SPI_CONTINUE);
+	SPI.transfer(_ch,val,SPI_CONTINUE);
+	SPI.transfer(_ch,0x00,SPI_LAST);
+	#else
+	SPI.transfer((reg << 1) | 0x01);
+	SPI.transfer(val);
+	SPI.transfer(0x00);
+	#endif
     digitalWrite(_cs, HIGH);
     SPI.endTransaction();
     _mode = MODE_PROG;
-    }
+}
 
 uint8_t ADS8688::readRegister(uint8_t reg) {
     SPI.beginTransaction(SPISettings(17000000, MSBFIRST, SPI_MODE1));
     digitalWrite(_cs, LOW);
-    SPI.transfer((reg << 1) | 0x00);
-    SPI.transfer(0x00);
-    byte result = SPI.transfer(0x00);
+	#ifdef __TC27XX__
+	SPI.transfer(_cs,(reg << 1) | 0x00,SPI_CONTINUE);
+	SPI.transfer(_cs,0x00,SPI_CONTINUE);
+	byte result = SPI.transfer(_cs,0x00,SPI_LAST);
+	#else
+	SPI.transfer((reg << 1) | 0x00);
+	SPI.transfer(0x00);
+	byte result = SPI.transfer(0x00);
+	#endif
     digitalWrite(_cs, HIGH);
     SPI.endTransaction();
     _mode = MODE_PROG;
     return result;
-    }
+}
 
 uint16_t ADS8688::cmdRegister(uint8_t reg) {
     SPI.beginTransaction(SPISettings(17000000, MSBFIRST, SPI_MODE1));
     digitalWrite(_cs, LOW);
-    SPI.transfer(reg);
-    SPI.transfer(0x00);
-    int16_t result = 0;
+    
+	int16_t result = 0;
+	
+	#ifdef __TC27XX__	
     if (_mode > 4) {
-        // only 16 bit if POWERDOWN or STDBY or RST or IDLE
-        byte MSB = SPI.transfer(0x00);
-        byte LSB = SPI.transfer(0x00);
-        result = ( MSB << 8) | LSB;
-        }
+		SPI.transfer(SPI_channel,reg,SPI_CONTINUE);
+		SPI.transfer(SPI_channel,0x00,SPI_CONTINUE);
+		byte MSB = SPI.transfer(SPI_channel,0x00,SPI_CONTINUE);
+		byte LSB = SPI.transfer(SPI_channel,0x00,SPI_LAST);
+		result = ( MSB << 8) | LSB;
+	}
+	else {
+		// only 16 bit if POWERDOWN or STDBY or RST or IDLE
+		SPI.transfer(SPI_channel,reg,SPI_CONTINUE);
+		SPI.transfer(SPI_channel,0x00,SPI_LAST);      
+	}       
+	#else
+	SPI.transfer(reg);
+	SPI.transfer(0x00);
+	if (_mode > 4) {
+		// only 16 bit if POWERDOWN or STDBY or RST or IDLE
+		byte MSB = SPI.transfer(0x00);
+		byte LSB = SPI.transfer(0x00);
+		result = ( MSB << 8) | LSB;
+	}
+	#endif
+	
     digitalWrite(_cs, HIGH);
     SPI.endTransaction();
     
@@ -412,5 +446,4 @@ uint16_t ADS8688::cmdRegister(uint8_t reg) {
             break;
     }
     return result;
-    }
-
+}
