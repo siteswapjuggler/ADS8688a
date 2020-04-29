@@ -390,16 +390,16 @@ uint16_t ADS8688::cmdRegister(uint8_t reg) {
 	
 	#ifdef __TC27XX__	
     if (_mode > 4) {
-		SPI.transfer(SPI_channel,reg,SPI_CONTINUE);
-		SPI.transfer(SPI_channel,0x00,SPI_CONTINUE);
-		byte MSB = SPI.transfer(SPI_channel,0x00,SPI_CONTINUE);
-		byte LSB = SPI.transfer(SPI_channel,0x00,SPI_LAST);
+		SPI.transfer(_cs,reg,SPI_CONTINUE);
+		SPI.transfer(_cs,0x00,SPI_CONTINUE);
+		byte MSB = SPI.transfer(_cs,0x00,SPI_CONTINUE);
+		byte LSB = SPI.transfer(_cs,0x00,SPI_LAST);
 		result = ( MSB << 8) | LSB;
 	}
 	else {
 		// only 16 bit if POWERDOWN or STDBY or RST or IDLE
-		SPI.transfer(SPI_channel,reg,SPI_CONTINUE);
-		SPI.transfer(SPI_channel,0x00,SPI_LAST);      
+		SPI.transfer(_cs,reg,SPI_CONTINUE);
+		SPI.transfer(_cs,0x00,SPI_LAST);      
 	}       
 	#else
 	SPI.transfer(reg);
