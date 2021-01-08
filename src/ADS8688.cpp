@@ -7,6 +7,20 @@
 //  INSTANCIATION     //
 ////////////////////////
 
+/*
+	mettre un vrai channle, un ADS.begin et un setSPIChannel, un setSPISpeed aussi.
+	vérifier les fonctionnements des constantes suivantes sur le TC275
+
+    //list of SPI channel available on TC275----------------------------------------------------------------------
+
+    //#define SPI_channel BOARD_SPI_SS0        //        CS = 10  MISO = P201.1, MOSI = P201.4 SCK = P201.3
+    //#define SPI_channel BOARD_SPI_SS0_S1     //(210u)  CS = 10  MISO = p12,    MOSI = p11    SCK = p13
+    //#define SPI_channel BOARD_SOFT_SPI_SS0   //(211u)  CS = 10  MISO = p50,    MOSI = p51    SCK = p52
+    //#define SPI_channel BOARD_SOFT_SPI_SS2   //(153u)  CS = 53  MISO = p50,    MOSI = p51    SCK = p52
+    //#define SPI_channel BOARD_SPI_SS1        //        MISO = P201.1, MOSI = P201.4 SCK = P201.3
+    #define SPI_channel BOARD_SPI_SS2          // Not used yet 
+*/
+
 ADS8688::ADS8688() {
 	_cs = 10;                     // default chip select pin
     _mode = MODE_IDLE;            // start in Idle mode
@@ -25,9 +39,9 @@ ADS8688::ADS8688(byte cs) {
 	pinMode(_cs,OUTPUT);          // set the pin as output
     digitalWrite(_cs,HIGH);       // set the pin to default HIGH state
 	#ifdef __TC27XX__
-		SPI.begin(_cs);           // initiate SPI
+	SPI.begin(_cs);           	  // initiate SPI
 	#else
-		SPI.begin();              // initiate SPI
+	SPI.begin();                  // initiate SPI
 	#endif
 }
 
@@ -348,7 +362,7 @@ uint16_t ADS8688::V2I(float x, uint8_t range) {
 /////////////////////////
 
 void ADS8688::writeRegister(uint8_t reg, uint8_t val) {
-    SPI.beginTransaction(SPISettings(17000000, MSBFIRST, SPI_MODE1));
+    SPI.beginTransaction(SPISettings(SPI_SPEED, MSBFIRST, SPI_MODE1));
     digitalWrite(_cs, LOW);
 	#ifdef __TC27XX__
 	SPI.transfer(_ch,(reg << 1) | 0x01,SPI_CONTINUE);
@@ -365,7 +379,7 @@ void ADS8688::writeRegister(uint8_t reg, uint8_t val) {
 }
 
 uint8_t ADS8688::readRegister(uint8_t reg) {
-    SPI.beginTransaction(SPISettings(17000000, MSBFIRST, SPI_MODE1));
+    SPI.beginTransaction(SPISettings(SPI_SPEED, MSBFIRST, SPI_MODE1));
     digitalWrite(_cs, LOW);
 	#ifdef __TC27XX__
 	SPI.transfer(_cs,(reg << 1) | 0x00,SPI_CONTINUE);
@@ -383,11 +397,10 @@ uint8_t ADS8688::readRegister(uint8_t reg) {
 }
 
 uint16_t ADS8688::cmdRegister(uint8_t reg) {
-    SPI.beginTransaction(SPISettings(17000000, MSBFIRST, SPI_MODE1));
-    digitalWrite(_cs, LOW);
-    
 	int16_t result = 0;
-	
+    SPI.beginTransaction(SPISettings(SPI_SPEED, MSBFIRST, SPI_MODE1));
+    digitalWrite(_cs, LOW); 
+    
 	#ifdef __TC27XX__	
     if (_mode > 4) {
 		SPI.transfer(_cs,reg,SPI_CONTINUE);
