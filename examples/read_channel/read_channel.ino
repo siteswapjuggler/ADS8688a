@@ -20,7 +20,7 @@
 ADS8688 bank = ADS8688();           // Instantiate ADS8688 with PIN 10 as default CS
 
 void setup() {
-  bank.setChannelSPD(0b00000010);   // enable channel 0, power-down the others
+  bank.setChannelSPD(0b00000001);   // enable channel 0, power-down the others
   bank.setChannelRange(0,R6);       // set all channel range to +- 1.25*Vref
   bank.autoRst();                   // reset auto sequence
   Serial.begin(115200);             // start serial communication

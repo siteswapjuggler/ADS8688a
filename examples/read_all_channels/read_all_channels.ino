@@ -31,7 +31,7 @@ void loop() {
   for (byte i=0;i<8;i++) {
     uint16_t val = bank.noOp();         // trigger samples
     Serial.print(bank.I2V(val,R1));     // print value in Volts
-    Serial.println(i!=7?" V | ":" V");  // print Volt label
+    Serial.print(i !=7 ?" V | ":" V\n");  // print Volt label
   }
   delay(500);                           // wait for 500 milliseconds
   }
