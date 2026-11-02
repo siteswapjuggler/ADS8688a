@@ -59,7 +59,9 @@ uint16_t ADS8688::powerDown() {
     }
 
 uint16_t ADS8688::reset() {
-    return cmdRegister(RST);
+    uint16_t result = cmdRegister(RST);
+    _feature = 0;
+    return result;
     }
 
 uint16_t ADS8688::autoRst() {
@@ -150,6 +152,7 @@ uint8_t ADS8688::getId() {
     }
 
 void ADS8688::setId(uint8_t id) {
+    getFeatureSelect();
     _feature = (_feature & 0b00010111) | ((id & 0b11)<<6);
     writeRegister(FT_SEL,_feature);
     }
@@ -159,6 +162,7 @@ bool ADS8688::getAlarm() {
     }
 
 void ADS8688::setAlarm(bool alarm) {
+    getFeatureSelect();
     _feature = (_feature & 0b11000111) | ((alarm == true)<<4);
     writeRegister(FT_SEL,_feature);
     }
@@ -169,12 +173,14 @@ uint8_t ADS8688::getSdo() {
 
 void ADS8688::setSdo(uint8_t sdo) {
     if (sdo > SDO_FORMAT_CHANNEL_DEVICE_RANGE) sdo = SDO_FORMAT_DATA_ONLY;
+    getFeatureSelect();
     _feature = (_feature & 0b11010000) | sdo;
     writeRegister(FT_SEL,_feature);
     }
 
 uint8_t ADS8688::getFeatureSelect() {
-    return readRegister(FT_SEL);
+    _feature = readRegister(FT_SEL);
+    return _feature;
     }
 
 void ADS8688::setFeatureSelect(uint8_t id, bool alarm, uint8_t sdo) {
