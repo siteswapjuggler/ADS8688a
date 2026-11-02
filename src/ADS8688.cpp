@@ -371,12 +371,21 @@ uint16_t ADS8688::cmdRegister(uint8_t reg) {
     digitalWrite(_cs, LOW);
     SPI.transfer(reg);
     SPI.transfer(0x00);
-    int16_t result = 0;
-    if (_mode > 4) {
-        // only 16 bit if POWERDOWN or STDBY or RST or IDLE
+    uint16_t result = 0;
+    const bool hasConversionResult = _mode > MODE_PROG;
+    const bool isManualChannelCommand =
+        reg >= MAN_Ch_0 && reg <= MAN_AUX && (reg & 0x03) == 0;
+    const bool needsCompleteFrame =
+        reg == AUTO_RST || isManualChannelCommand;
+
+    // AUTO_RST and MAN_Ch_n need a complete 32-SCLK command frame to
+    // accurately acquire the first selected channel in the next frame.
+    if (hasConversionResult || needsCompleteFrame) {
         byte MSB = SPI.transfer(0x00);
         byte LSB = SPI.transfer(0x00);
-        result = ( MSB << 8) | LSB;
+        if (hasConversionResult) {
+            result = ((uint16_t)MSB << 8) | LSB;
+            }
         }
     digitalWrite(_cs, HIGH);
     SPI.endTransaction();
