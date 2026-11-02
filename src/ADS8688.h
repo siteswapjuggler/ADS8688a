@@ -107,6 +107,8 @@
             void setVREF(float vref);                     // set external Vref
             float I2V(uint16_t x, uint8_t range);         // map uint16 to Volts according to Vref and Range
             uint16_t V2I(float x, uint8_t range);         // map Volts to uint16 according to Vref and Range
+            float auxI2V(uint16_t x);                     // map AUX code to its fixed 0-Vref input range
+            uint16_t auxV2I(float x);                     // map AUX voltage to uint16 and saturate at 0/Vref
 
             uint16_t noOp();                              // continue previous operation
             uint16_t standBy();                           // device in stand by mode

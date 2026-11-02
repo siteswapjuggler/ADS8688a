@@ -23,6 +23,8 @@ manualChannel	KEYWORD1
 noOpSdoData	KEYWORD1
 autoRstSdoData	KEYWORD1
 manualChannelSdoData	KEYWORD1
+auxI2V	KEYWORD1
+auxV2I	KEYWORD1
 setChannelSPD	KEYWORD1
 setChannelSequence	KEYWORD1
 setChannelPowerDown	KEYWORD1

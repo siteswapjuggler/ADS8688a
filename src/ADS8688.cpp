@@ -363,6 +363,16 @@ uint16_t ADS8688::V2I(float x, uint8_t range) {
     return (uint16_t)((x - in_min) * 65536.0f / (in_max - in_min));
 }
 
+float ADS8688::auxI2V(uint16_t x) {
+    return (float)x * _vref / 65536.0f;
+}
+
+uint16_t ADS8688::auxV2I(float x) {
+    if (x <= 0.0f) return 0;
+    if (x >= _vref) return 0xFFFF;
+    return (uint16_t)(x * 65536.0f / _vref);
+}
+
 /////////////////////////
 //  PRIVATE METHODS    //
 /////////////////////////
