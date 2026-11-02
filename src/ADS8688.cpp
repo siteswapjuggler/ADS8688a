@@ -460,8 +460,9 @@ uint16_t ADS8688::cmdRegisterTransfer(uint8_t reg, ADS8688SdoData *sdoData) {
     // Keep CS high for the required wake-up time after a conversion command.
     if (_mode == MODE_STANDBY && needsCompleteFrame) delayMicroseconds(20);
 
-    // when exit power down it takes 15 ms to be operationnal
-    if (_mode == MODE_POWER_DN) delay(15);
+    // Only a conversion command exits software power-down. The internal
+    // reference needs 15 ms to settle before the following data frame.
+    if (_mode == MODE_POWER_DN && needsCompleteFrame) delay(15);
     
     switch (reg) {
         case NO_OP:
