@@ -390,6 +390,9 @@ uint16_t ADS8688::cmdRegister(uint8_t reg) {
     digitalWrite(_cs, HIGH);
     SPI.endTransaction();
     
+    // Keep CS high for the required wake-up time after a conversion command.
+    if (_mode == MODE_STANDBY && needsCompleteFrame) delayMicroseconds(20);
+
     // when exit power down it takes 15 ms to be operationnal
     if (_mode == MODE_POWER_DN) delay(15);
     
