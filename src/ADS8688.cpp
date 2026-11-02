@@ -292,7 +292,7 @@ float ADS8688::I2V(uint16_t x, uint8_t range) {
             break;
             
     }
-    return (float)x * (out_max - out_min) / 65535. + out_min;
+    return (float)x * (out_max - out_min) / 65536.0f + out_min;
     }
 
 uint16_t ADS8688::V2I(float x, uint8_t range) {
@@ -336,7 +336,9 @@ uint16_t ADS8688::V2I(float x, uint8_t range) {
             break;
             
     }
-    return (x-in_min) * 65535. / (in_max-in_min);
+    if (x <= in_min) return 0;
+    if (x >= in_max) return 0xFFFF;
+    return (uint16_t)((x - in_min) * 65536.0f / (in_max - in_min));
 }
 
 /////////////////////////
