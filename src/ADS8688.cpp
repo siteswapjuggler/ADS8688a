@@ -369,7 +369,8 @@ void ADS8688::writeRegister(uint8_t reg, uint8_t val) {
     SPI.transfer(0x00);
     digitalWrite(_cs, HIGH);
     SPI.endTransaction();
-    _mode = MODE_PROG;
+    // Program-register access does not exit RESET, STDBY, or PWR_DN.
+    if (_mode == MODE_IDLE || _mode >= MODE_PROG) _mode = MODE_PROG;
     }
 
 uint8_t ADS8688::readRegister(uint8_t reg) {
@@ -380,7 +381,8 @@ uint8_t ADS8688::readRegister(uint8_t reg) {
     byte result = SPI.transfer(0x00);
     digitalWrite(_cs, HIGH);
     SPI.endTransaction();
-    _mode = MODE_PROG;
+    // Program-register access does not exit RESET, STDBY, or PWR_DN.
+    if (_mode == MODE_IDLE || _mode >= MODE_PROG) _mode = MODE_PROG;
     return result;
     }
 
