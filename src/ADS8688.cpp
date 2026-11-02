@@ -450,8 +450,6 @@ uint16_t ADS8688::cmdRegisterTransfer(uint8_t reg, ADS8688SdoData *sdoData) {
     switch (reg) {
         case NO_OP:
             switch (_mode) {
-                case MODE_RESET:    _mode = MODE_IDLE;
-                    break;
                 case MODE_PROG :    _mode = MODE_IDLE;
                     break;
                 case MODE_AUTO_RST: _mode = MODE_AUTO;
