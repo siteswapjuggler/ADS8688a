@@ -24,22 +24,22 @@ static uint8_t manualChannelCommand(uint8_t ch) {
 
 ADS8688::ADS8688() {
     _cs = 10;                     // default chip select pin
-    _mode = MODE_IDLE;            // start in Idle mode
-    _vref = 4.096;                // vref at 4.096
-    _feature = 0;                 // start with no feature
-    pinMode(_cs,OUTPUT);          // set the pin as output
-    digitalWrite(_cs,HIGH);       // set the pin to default HIGH state
-    SPI.begin();                  // initiate SPI
+    _mode = MODE_IDLE;            // start in idle mode
+    _vref = 4.096f;               // default internal reference voltage
+    _feature = 0;                 // start with no optional SDO features
     }
 
 ADS8688::ADS8688(byte cs) {
-	_cs = cs;                     // choose the chip select pin
-    _mode = MODE_IDLE;            // start in Idle mode
-    _vref = 4.096;                // vref at 4.096
-    _feature = 0;                 // start with no feature
-	pinMode(_cs,OUTPUT);          // set the pin as output
-    digitalWrite(_cs,HIGH);       // set the pin to default HIGH state
-    SPI.begin();                  // initiate SPI
+    _cs = cs;                     // choose the chip select pin
+    _mode = MODE_IDLE;            // start in idle mode
+    _vref = 4.096f;               // default internal reference voltage
+    _feature = 0;                 // start with no optional SDO features
+    }
+
+void ADS8688::begin() {
+    pinMode(_cs, OUTPUT);         // configure the selected chip-select pin
+    digitalWrite(_cs, HIGH);      // keep the ADC deselected while SPI starts
+    SPI.begin();                  // initialize SPI after Arduino startup
     }
 
 /////////////////////////

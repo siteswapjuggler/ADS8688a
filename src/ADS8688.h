@@ -103,6 +103,7 @@
 		public:
             ADS8688();                                    // instantiate with PIN10 as CS
 			ADS8688(uint8_t cs);                          // instantiate with custom CS pin
+            void begin();                                  // initialize CS and the SPI peripheral
         
             void setVREF(float vref);                     // set external Vref
             float I2V(uint16_t x, uint8_t range);         // map uint16 to Volts according to Vref and Range
