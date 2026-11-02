@@ -7,6 +7,7 @@
 #######################################
 
 ADS8688	KEYWORD1
+ADS8688SdoData	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -19,6 +20,9 @@ powerDown	KEYWORD1
 reset	KEYWORD1
 autoRst	KEYWORD1
 manualChannel	KEYWORD1
+noOpSdoData	KEYWORD1
+autoRstSdoData	KEYWORD1
+manualChannelSdoData	KEYWORD1
 setChannelSPD	KEYWORD1
 setChannelSequence	KEYWORD1
 setChannelPowerDown	KEYWORD1
@@ -66,3 +70,8 @@ R4	LITERAL1
 R5	LITERAL1
 R6	LITERAL1
 R7	LITERAL1
+R8	LITERAL1
+SDO_FORMAT_DATA_ONLY	LITERAL1
+SDO_FORMAT_CHANNEL	LITERAL1
+SDO_FORMAT_CHANNEL_DEVICE	LITERAL1
+SDO_FORMAT_CHANNEL_DEVICE_RANGE	LITERAL1

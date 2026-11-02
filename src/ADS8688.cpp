@@ -3,6 +3,21 @@
 
 #include "ADS8688.h"
 
+static uint8_t manualChannelCommand(uint8_t ch) {
+    switch (ch) {
+        case 0:  return MAN_Ch_0;
+        case 1:  return MAN_Ch_1;
+        case 2:  return MAN_Ch_2;
+        case 3:  return MAN_Ch_3;
+        case 4:  return MAN_Ch_4;
+        case 5:  return MAN_Ch_5;
+        case 6:  return MAN_Ch_6;
+        case 7:  return MAN_Ch_7;
+        case 8:  return MAN_AUX;
+        default: return MAN_Ch_0;
+    }
+}
+
 ////////////////////////
 //  INSTANCIATION     //
 ////////////////////////
@@ -52,20 +67,19 @@ uint16_t ADS8688::autoRst() {
     }
 
 uint16_t ADS8688::manualChannel(uint8_t ch) {
-    uint8_t reg;
-    switch (ch) {
-        case 0:  reg = MAN_Ch_0;break;
-        case 1:  reg = MAN_Ch_1;break;
-        case 2:  reg = MAN_Ch_2;break;
-        case 3:  reg = MAN_Ch_3;break;
-        case 4:  reg = MAN_Ch_4;break;
-        case 5:  reg = MAN_Ch_5;break;
-        case 6:  reg = MAN_Ch_6;break;
-        case 7:  reg = MAN_Ch_7;break;
-        case 8:  reg = MAN_AUX; break;
-        default: reg = MAN_Ch_0;break;
+    return cmdRegister(manualChannelCommand(ch));
     }
-    return cmdRegister(reg);
+
+ADS8688SdoData ADS8688::noOpSdoData() {
+    return cmdRegisterSdoData(NO_OP);
+    }
+
+ADS8688SdoData ADS8688::autoRstSdoData() {
+    return cmdRegisterSdoData(AUTO_RST);
+    }
+
+ADS8688SdoData ADS8688::manualChannelSdoData(uint8_t ch) {
+    return cmdRegisterSdoData(manualChannelCommand(ch));
     }
 
 //-----------------------------------------------------------------------------
@@ -154,7 +168,8 @@ uint8_t ADS8688::getSdo() {
     }
 
 void ADS8688::setSdo(uint8_t sdo) {
-    _feature = (_feature & 0b11010000) | (sdo & 0b111);
+    if (sdo > SDO_FORMAT_CHANNEL_DEVICE_RANGE) sdo = SDO_FORMAT_DATA_ONLY;
+    _feature = (_feature & 0b11010000) | sdo;
     writeRegister(FT_SEL,_feature);
     }
 
@@ -163,7 +178,8 @@ uint8_t ADS8688::getFeatureSelect() {
     }
 
 void ADS8688::setFeatureSelect(uint8_t id, bool alarm, uint8_t sdo) {
-    _feature = ((id & 0b11)<<6) | ((alarm == true)<<4) | (sdo & 0b111);
+    if (sdo > SDO_FORMAT_CHANNEL_DEVICE_RANGE) sdo = SDO_FORMAT_DATA_ONLY;
+    _feature = ((id & 0b11)<<6) | ((alarm == true)<<4) | sdo;
     writeRegister(FT_SEL,_feature);
     }
 
@@ -369,6 +385,22 @@ uint8_t ADS8688::readRegister(uint8_t reg) {
     }
 
 uint16_t ADS8688::cmdRegister(uint8_t reg) {
+    return cmdRegisterTransfer(reg, NULL);
+    }
+
+ADS8688SdoData ADS8688::cmdRegisterSdoData(uint8_t reg) {
+    ADS8688SdoData sdoData;
+    sdoData.value = 0;
+    sdoData.channel = 0xFF;
+    sdoData.device = 0xFF;
+    sdoData.range = 0xFF;
+    sdoData.sdoFormat = _feature & 0b011;
+    sdoData.valid = false;
+    cmdRegisterTransfer(reg, &sdoData);
+    return sdoData;
+    }
+
+uint16_t ADS8688::cmdRegisterTransfer(uint8_t reg, ADS8688SdoData *sdoData) {
     SPI.beginTransaction(SPISettings(17000000, MSBFIRST, SPI_MODE1));
     digitalWrite(_cs, LOW);
     SPI.transfer(reg);
@@ -387,6 +419,21 @@ uint16_t ADS8688::cmdRegister(uint8_t reg) {
         byte LSB = SPI.transfer(0x00);
         if (hasConversionResult) {
             result = ((uint16_t)MSB << 8) | LSB;
+            if (sdoData != NULL) {
+                byte metadataHigh = SPI.transfer(0x00);
+                byte metadataLow = SPI.transfer(0x00);
+                sdoData->value = result;
+                sdoData->valid = true;
+                if (sdoData->sdoFormat >= SDO_FORMAT_CHANNEL) {
+                    sdoData->channel = metadataHigh >> 4;
+                    }
+                if (sdoData->sdoFormat >= SDO_FORMAT_CHANNEL_DEVICE) {
+                    sdoData->device = (metadataHigh >> 2) & 0x03;
+                    }
+                if (sdoData->sdoFormat >= SDO_FORMAT_CHANNEL_DEVICE_RANGE) {
+                    sdoData->range = ((metadataHigh & 0x03) << 1) | (metadataLow >> 7);
+                    }
+                }
             }
         }
     digitalWrite(_cs, HIGH);
