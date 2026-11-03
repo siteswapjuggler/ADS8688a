@@ -3,28 +3,43 @@
 
 #include "ADS8688.h"
 
+static uint8_t manualChannelCommand(uint8_t ch) {
+    switch (ch) {
+        case 0:  return MAN_Ch_0;
+        case 1:  return MAN_Ch_1;
+        case 2:  return MAN_Ch_2;
+        case 3:  return MAN_Ch_3;
+        case 4:  return MAN_Ch_4;
+        case 5:  return MAN_Ch_5;
+        case 6:  return MAN_Ch_6;
+        case 7:  return MAN_Ch_7;
+        case 8:  return MAN_AUX;
+        default: return MAN_Ch_0;
+    }
+}
+
 ////////////////////////
 //  INSTANCIATION     //
 ////////////////////////
 
 ADS8688::ADS8688() {
     _cs = 10;                     // default chip select pin
-    _mode = MODE_IDLE;            // start in Idle mode
-    _vref = 4.096;                // vref at 4.096
-    _feature = 0;                 // start with no feature
-    pinMode(_cs,OUTPUT);          // set the pin as output
-    digitalWrite(_cs,HIGH);       // set the pin to default HIGH state
-    SPI.begin();                  // initiate SPI
+    _mode = MODE_IDLE;            // start in idle mode
+    _vref = 4.096f;               // default internal reference voltage
+    _feature = 0;                 // start with no optional SDO features
     }
 
 ADS8688::ADS8688(byte cs) {
-	_cs = cs;                     // choose the chip select pin
-    _mode = MODE_IDLE;            // start in Idle mode
-    _vref = 4.096;                // vref at 4.096
-    _feature = 0;                 // start with no feature
-	pinMode(_cs,OUTPUT);          // set the pin as output
-    digitalWrite(_cs,HIGH);       // set the pin to default HIGH state
-    SPI.begin();                  // initiate SPI
+    _cs = cs;                     // choose the chip select pin
+    _mode = MODE_IDLE;            // start in idle mode
+    _vref = 4.096f;               // default internal reference voltage
+    _feature = 0;                 // start with no optional SDO features
+    }
+
+void ADS8688::begin() {
+    pinMode(_cs, OUTPUT);         // configure the selected chip-select pin
+    digitalWrite(_cs, HIGH);      // keep the ADC deselected while SPI starts
+    SPI.begin();                  // initialize SPI after Arduino startup
     }
 
 /////////////////////////
@@ -44,7 +59,9 @@ uint16_t ADS8688::powerDown() {
     }
 
 uint16_t ADS8688::reset() {
-    return cmdRegister(RST);
+    uint16_t result = cmdRegister(RST);
+    _feature = 0;
+    return result;
     }
 
 uint16_t ADS8688::autoRst() {
@@ -52,20 +69,19 @@ uint16_t ADS8688::autoRst() {
     }
 
 uint16_t ADS8688::manualChannel(uint8_t ch) {
-    uint8_t reg;
-    switch (ch) {
-        case 0:  reg = MAN_Ch_0;break;
-        case 1:  reg = MAN_Ch_1;break;
-        case 2:  reg = MAN_Ch_2;break;
-        case 3:  reg = MAN_Ch_3;break;
-        case 4:  reg = MAN_Ch_4;break;
-        case 5:  reg = MAN_Ch_5;break;
-        case 6:  reg = MAN_Ch_6;break;
-        case 7:  reg = MAN_Ch_7;break;
-        case 8:  reg = MAN_AUX; break;
-        default: reg = MAN_Ch_0;break;
+    return cmdRegister(manualChannelCommand(ch));
     }
-    return cmdRegister(reg);
+
+ADS8688SdoData ADS8688::noOpSdoData() {
+    return cmdRegisterSdoData(NO_OP);
+    }
+
+ADS8688SdoData ADS8688::autoRstSdoData() {
+    return cmdRegisterSdoData(AUTO_RST);
+    }
+
+ADS8688SdoData ADS8688::manualChannelSdoData(uint8_t ch) {
+    return cmdRegisterSdoData(manualChannelCommand(ch));
     }
 
 //-----------------------------------------------------------------------------
@@ -136,6 +152,7 @@ uint8_t ADS8688::getId() {
     }
 
 void ADS8688::setId(uint8_t id) {
+    getFeatureSelect();
     _feature = (_feature & 0b00010111) | ((id & 0b11)<<6);
     writeRegister(FT_SEL,_feature);
     }
@@ -145,6 +162,7 @@ bool ADS8688::getAlarm() {
     }
 
 void ADS8688::setAlarm(bool alarm) {
+    getFeatureSelect();
     _feature = (_feature & 0b11000111) | ((alarm == true)<<4);
     writeRegister(FT_SEL,_feature);
     }
@@ -154,16 +172,20 @@ uint8_t ADS8688::getSdo() {
     }
 
 void ADS8688::setSdo(uint8_t sdo) {
-    _feature = (_feature & 0b11010000) | (sdo & 0b111);
+    if (sdo > SDO_FORMAT_CHANNEL_DEVICE_RANGE) sdo = SDO_FORMAT_DATA_ONLY;
+    getFeatureSelect();
+    _feature = (_feature & 0b11010000) | sdo;
     writeRegister(FT_SEL,_feature);
     }
 
 uint8_t ADS8688::getFeatureSelect() {
-    return readRegister(FT_SEL);
+    _feature = readRegister(FT_SEL);
+    return _feature;
     }
 
 void ADS8688::setFeatureSelect(uint8_t id, bool alarm, uint8_t sdo) {
-    _feature = ((id & 0b11)<<6) | ((alarm == true)<<4) | (sdo & 0b111);
+    if (sdo > SDO_FORMAT_CHANNEL_DEVICE_RANGE) sdo = SDO_FORMAT_DATA_ONLY;
+    _feature = ((id & 0b11)<<6) | ((alarm == true)<<4) | sdo;
     writeRegister(FT_SEL,_feature);
     }
 
@@ -292,7 +314,7 @@ float ADS8688::I2V(uint16_t x, uint8_t range) {
             break;
             
     }
-    return (float)x * (out_max - out_min) / 65535. + out_min;
+    return (float)x * (out_max - out_min) / 65536.0f + out_min;
     }
 
 uint16_t ADS8688::V2I(float x, uint8_t range) {
@@ -336,7 +358,19 @@ uint16_t ADS8688::V2I(float x, uint8_t range) {
             break;
             
     }
-    return (x-in_min) * 65535. / (in_max-in_min);
+    if (x <= in_min) return 0;
+    if (x >= in_max) return 0xFFFF;
+    return (uint16_t)((x - in_min) * 65536.0f / (in_max - in_min));
+}
+
+float ADS8688::auxI2V(uint16_t x) {
+    return (float)x * _vref / 65536.0f;
+}
+
+uint16_t ADS8688::auxV2I(float x) {
+    if (x <= 0.0f) return 0;
+    if (x >= _vref) return 0xFFFF;
+    return (uint16_t)(x * 65536.0f / _vref);
 }
 
 /////////////////////////
@@ -351,7 +385,8 @@ void ADS8688::writeRegister(uint8_t reg, uint8_t val) {
     SPI.transfer(0x00);
     digitalWrite(_cs, HIGH);
     SPI.endTransaction();
-    _mode = MODE_PROG;
+    // Program-register access does not exit RESET, STDBY, or PWR_DN.
+    if (_mode == MODE_IDLE || _mode >= MODE_PROG) _mode = MODE_PROG;
     }
 
 uint8_t ADS8688::readRegister(uint8_t reg) {
@@ -362,33 +397,76 @@ uint8_t ADS8688::readRegister(uint8_t reg) {
     byte result = SPI.transfer(0x00);
     digitalWrite(_cs, HIGH);
     SPI.endTransaction();
-    _mode = MODE_PROG;
+    // Program-register access does not exit RESET, STDBY, or PWR_DN.
+    if (_mode == MODE_IDLE || _mode >= MODE_PROG) _mode = MODE_PROG;
     return result;
     }
 
 uint16_t ADS8688::cmdRegister(uint8_t reg) {
+    return cmdRegisterTransfer(reg, NULL);
+    }
+
+ADS8688SdoData ADS8688::cmdRegisterSdoData(uint8_t reg) {
+    ADS8688SdoData sdoData;
+    sdoData.value = 0;
+    sdoData.channel = 0xFF;
+    sdoData.device = 0xFF;
+    sdoData.range = 0xFF;
+    sdoData.sdoFormat = _feature & 0b011;
+    sdoData.valid = false;
+    cmdRegisterTransfer(reg, &sdoData);
+    return sdoData;
+    }
+
+uint16_t ADS8688::cmdRegisterTransfer(uint8_t reg, ADS8688SdoData *sdoData) {
     SPI.beginTransaction(SPISettings(17000000, MSBFIRST, SPI_MODE1));
     digitalWrite(_cs, LOW);
     SPI.transfer(reg);
     SPI.transfer(0x00);
-    int16_t result = 0;
-    if (_mode > 4) {
-        // only 16 bit if POWERDOWN or STDBY or RST or IDLE
+    uint16_t result = 0;
+    const bool hasConversionResult = _mode > MODE_PROG;
+    const bool isManualChannelCommand =
+        reg >= MAN_Ch_0 && reg <= MAN_AUX && (reg & 0x03) == 0;
+    const bool needsCompleteFrame =
+        reg == AUTO_RST || isManualChannelCommand;
+
+    // AUTO_RST and MAN_Ch_n need a complete 32-SCLK command frame to
+    // accurately acquire the first selected channel in the next frame.
+    if (hasConversionResult || needsCompleteFrame) {
         byte MSB = SPI.transfer(0x00);
         byte LSB = SPI.transfer(0x00);
-        result = ( MSB << 8) | LSB;
+        if (hasConversionResult) {
+            result = ((uint16_t)MSB << 8) | LSB;
+            if (sdoData != NULL) {
+                byte metadataHigh = SPI.transfer(0x00);
+                byte metadataLow = SPI.transfer(0x00);
+                sdoData->value = result;
+                sdoData->valid = true;
+                if (sdoData->sdoFormat >= SDO_FORMAT_CHANNEL) {
+                    sdoData->channel = metadataHigh >> 4;
+                    }
+                if (sdoData->sdoFormat >= SDO_FORMAT_CHANNEL_DEVICE) {
+                    sdoData->device = (metadataHigh >> 2) & 0x03;
+                    }
+                if (sdoData->sdoFormat >= SDO_FORMAT_CHANNEL_DEVICE_RANGE) {
+                    sdoData->range = ((metadataHigh & 0x03) << 1) | (metadataLow >> 7);
+                    }
+                }
+            }
         }
     digitalWrite(_cs, HIGH);
     SPI.endTransaction();
     
-    // when exit power down it takes 15 ms to be operationnal
-    if (_mode == MODE_POWER_DN) delay(15);
+    // Keep CS high for the required wake-up time after a conversion command.
+    if (_mode == MODE_STANDBY && needsCompleteFrame) delayMicroseconds(20);
+
+    // Only a conversion command exits software power-down. The internal
+    // reference needs 15 ms to settle before the following data frame.
+    if (_mode == MODE_POWER_DN && needsCompleteFrame) delay(15);
     
     switch (reg) {
         case NO_OP:
             switch (_mode) {
-                case MODE_RESET:    _mode = MODE_IDLE;
-                    break;
                 case MODE_PROG :    _mode = MODE_IDLE;
                     break;
                 case MODE_AUTO_RST: _mode = MODE_AUTO;

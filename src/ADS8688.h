@@ -34,6 +34,11 @@
     #define FT_SEL        0x03  // Feature Select: default 0x00
                                 // bit 7-6 for daisy chain ID, bit 4 for ALARM feature, bit 2-0 SDO data format bits
 
+    #define SDO_FORMAT_DATA_ONLY                 0x00
+    #define SDO_FORMAT_CHANNEL                   0x01
+    #define SDO_FORMAT_CHANNEL_DEVICE            0x02
+    #define SDO_FORMAT_CHANNEL_DEVICE_RANGE      0x03
+
     // RANGE SELECT REGISTERS
     #define RG_Ch_0       0x05   // Channel 0 Input Range: default 0x00 - bit 3-0 to select range
     #define RG_Ch_1       0x06   // Channel 1 Input Range: default 0x00 - bit 3-0 to select range
@@ -85,15 +90,26 @@
     #define MODE_AUTO       6
     #define MODE_AUTO_RST   7
 
+    struct ADS8688SdoData {
+        uint16_t value;
+        uint8_t channel;
+        uint8_t device;
+        uint8_t range;
+        uint8_t sdoFormat;
+        bool valid;
+    };
 
 	class ADS8688 {
 		public:
             ADS8688();                                    // instantiate with PIN10 as CS
 			ADS8688(uint8_t cs);                          // instantiate with custom CS pin
+            void begin();                                  // initialize CS and the SPI peripheral
         
             void setVREF(float vref);                     // set external Vref
             float I2V(uint16_t x, uint8_t range);         // map uint16 to Volts according to Vref and Range
             uint16_t V2I(float x, uint8_t range);         // map Volts to uint16 according to Vref and Range
+            float auxI2V(uint16_t x);                     // map AUX code to its fixed 0-Vref input range
+            uint16_t auxV2I(float x);                     // map AUX voltage to uint16 and saturate at 0/Vref
 
             uint16_t noOp();                              // continue previous operation
             uint16_t standBy();                           // device in stand by mode
@@ -101,6 +117,9 @@
             uint16_t reset();                             // reset the device
             uint16_t autoRst();                           // reset auto sequence
             uint16_t manualChannel(uint8_t ch);           // manual channel selection
+            ADS8688SdoData noOpSdoData();                     // continue operation and return SDO data
+            ADS8688SdoData autoRstSdoData();                  // reset auto sequence and return SDO data
+            ADS8688SdoData manualChannelSdoData(uint8_t ch);  // select channel and return SDO data
 
         
             void setChannelSPD(uint8_t flag);             // set channel sequence and power down other channels
@@ -118,9 +137,9 @@
             bool getAlarm();                              // get alarm status
             void setAlarm(bool alarm);                    // set alarm status
             uint8_t getSdo();                             // get device sdo
-            void setSdo(uint8_t sdo);                     // set device sdo
+            void setSdo(uint8_t sdo);                     // set SDO format 0-3; invalid values select 0
             uint8_t getFeatureSelect();                                  // get feature select register
-            void setFeatureSelect(uint8_t id, bool alarm, uint8_t sdo);  // set feature select register
+            void setFeatureSelect(uint8_t id, bool alarm, uint8_t sdo);  // SDO format 0-3; invalid values select 0
         
             uint8_t  getAlarmOverview();                  // Logical OR of High and Low threshold per channel
             uint8_t  getFirstTrippedFlag();               // Tripped Flag remain latched until read
@@ -145,6 +164,8 @@
             void writeRegister(uint8_t reg, uint8_t val); // write 8 bit data into a register
             uint8_t readRegister(uint8_t reg);            // read 8 bit data in a specific register
             uint16_t cmdRegister(uint8_t reg);            // send a command register and read
+            ADS8688SdoData cmdRegisterSdoData(uint8_t reg);  // send a command and read SDO data
+            uint16_t cmdRegisterTransfer(uint8_t reg, ADS8688SdoData *sdoData);
         };
 
 #endif // ADS8688_h
