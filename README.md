@@ -7,4 +7,4 @@ ADS8688a Arduino Library
 
 ---
 
-> Pull request #9 contains LLM fixes (first-channel conversion in auto mode, wake-up timing, midscale) that were checked against the datasheet but not tested on hardware by the maintainer use at your own risks.
+> Pull request #9 contains LLM fixes (first-channel conversion in auto mode, wake-up timing, midscale) that were checked against the datasheet but not tested on hardware by the maintainer. Use at your own risk.
